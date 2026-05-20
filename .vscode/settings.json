@@ -1,0 +1,14 @@
+{
+  "files.associations": {
+    "*.m": "matlab"
+  },
+  "files.exclude": {
+    "**/*.asv": true,
+    "**/MapForUI.jpg:Zone.Identifier": true
+  },
+  "search.exclude": {
+    "**/*.asv": true,
+    "**/MapForUI.jpg:Zone.Identifier": true
+  },
+  "editor.formatOnSave": false
+}
