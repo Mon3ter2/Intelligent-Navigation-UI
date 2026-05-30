@@ -81,9 +81,9 @@ function app = nav_ui_app(projectRoot)
         'Position',[0.68 0.915 0.14 0.022],'String','1','FontName',FN,'FontSize',9, ...
         'BackgroundColor',[.95 .95 .97]);
 
-    btn(rp,[0.03 0.885 0.30 0.028],'Add IV',FN,BA,[1 1 1],@(~,~)onAddIV(fig));
-    btn(rp,[0.35 0.885 0.30 0.028],'Remove IV',FN,[.7 .3 .3],[1 1 1],@(~,~)onRemoveIV(fig));
-    btn(rp,[0.67 0.885 0.30 0.028],'Report All',FN,BB,[1 1 1],@(~,~)onReportIV(fig));
+    btn(rp,[0.03 0.885 0.30 0.028],'➕ Add IV',FN,BA,[1 1 1],@(~,~)onAddIV(fig));
+    btn(rp,[0.35 0.885 0.30 0.028],'❌ Remove',FN,[.7 .3 .3],[1 1 1],@(~,~)onRemoveIV(fig));
+    btn(rp,[0.67 0.885 0.30 0.028],'📋 Report',FN,BB,[1 1 1],@(~,~)onReportIV(fig));
 
     lab(rp,[0.03 0.86 0.94 0.02],'Loaded IVs:',FN,BP,FL);
     ivLB = uicontrol('Parent',rp,'Style','listbox','Units','normalized', ...
@@ -94,9 +94,9 @@ function app = nav_ui_app(projectRoot)
 
     % ========== MEASUREMENT ==========
     sep(rp,0.76,BB); stit(rp,0.74,'MEASUREMENT',FN,BP,FS);
-    btn(rp,[0.03 0.71 0.30 0.028],'Distance',FN,BB,[1 1 1],@(~,~)onDistBtn(fig));
-    btn(rp,[0.35 0.71 0.30 0.028],'Trajectory',FN,BB,[1 1 1],@(~,~)onTrajBtn(fig));
-    btn(rp,[0.67 0.71 0.30 0.028],'Clear',FN,BB,[1 1 1],@(~,~)onClearMeas(fig));
+    btn(rp,[0.03 0.71 0.30 0.028],'📏 Distance',FN,BB,[1 1 1],@(~,~)onDistBtn(fig));
+    btn(rp,[0.35 0.71 0.30 0.028],'🛣️ Traj',FN,BB,[1 1 1],@(~,~)onTrajBtn(fig));
+    btn(rp,[0.67 0.71 0.30 0.028],'🗑️ Clear',FN,BB,[1 1 1],@(~,~)onClearMeas(fig));
     dR = uicontrol('Parent',rp,'Style','text','Units','normalized', ...
         'Position',[0.03 0.685 0.45 0.022],'String','Dist: --', ...
         'FontName',FN,'FontSize',9,'BackgroundColor',BP,'ForegroundColor',FL, ...
@@ -112,7 +112,7 @@ function app = nav_ui_app(projectRoot)
     rotIn = uicontrol('Parent',rp,'Style','edit','Units','normalized', ...
         'Position',[0.29 0.63 0.16 0.022],'String','0','FontName',FN,'FontSize',9, ...
         'BackgroundColor',[.95 .95 .97]);
-    btn(rp,[0.48 0.625 0.49 0.028],'Rotate Map',FN,BB,[1 1 1],@(~,~)onRotate(fig));
+    btn(rp,[0.48 0.625 0.49 0.028],'🔄 Rotate Map',FN,BB,[1 1 1],@(~,~)onRotate(fig));
 
     % ========== OR TABS ==========
     sep(rp,0.61,BB);
@@ -122,11 +122,11 @@ function app = nav_ui_app(projectRoot)
 
     % ---- OR-1  Skeleton ----
     t1 = uitab(tg,'Title','OR1:Skeleton','BackgroundColor',BP);
-    btn(t1,[0.03 0.90 0.30 0.07],'Extract',FN,BA,[1 1 1],@(~,~)onSkelExtract(fig));
-    btn(t1,[0.35 0.90 0.30 0.07],'End',FN,BB,[1 1 1],@(~,~)onSkelEnd(fig));
-    btn(t1,[0.67 0.90 0.30 0.07],'Clear',FN,[.6 .3 .3],[1 1 1],@(~,~)onSkelClear(fig));
-    btn(t1,[0.03 0.82 0.46 0.07],'Show Skeleton',FN,BB,[1 1 1],@(~,~)onSkelShow(fig));
-    btn(t1,[0.51 0.82 0.46 0.07],'Show Road Area',FN,BB,[1 1 1],@(~,~)onSkelRoadArea(fig));
+    btn(t1,[0.03 0.90 0.30 0.07],'⛏️ Extract',FN,BA,[1 1 1],@(~,~)onSkelExtract(fig));
+    btn(t1,[0.35 0.90 0.30 0.07],'✅ End',FN,BB,[1 1 1],@(~,~)onSkelEnd(fig));
+    btn(t1,[0.67 0.90 0.30 0.07],'🗑️ Clear',FN,[.6 .3 .3],[1 1 1],@(~,~)onSkelClear(fig));
+    btn(t1,[0.03 0.82 0.46 0.07],'🦴 Show Skel',FN,BB,[1 1 1],@(~,~)onSkelShow(fig));
+    btn(t1,[0.51 0.82 0.46 0.07],'🗺️ Road Area',FN,BB,[1 1 1],@(~,~)onSkelRoadArea(fig));
     skelInfo = uicontrol('Parent',t1,'Style','text','Units','normalized', ...
         'Position',[0.03 0.76 0.94 0.05],'String','Points: 0', ...
         'FontName',FN,'FontSize',9,'BackgroundColor',BP,'ForegroundColor',FL, ...
@@ -140,7 +140,7 @@ function app = nav_ui_app(projectRoot)
     rgIn = uicontrol('Parent',t2,'Style','edit','Units','normalized', ...
         'Position',[0.32 0.92 0.18 0.06],'String','100','FontName',FN,'FontSize',9, ...
         'BackgroundColor',[.95 .95 .97]);
-    btn(t2,[0.53 0.92 0.44 0.06],'Update View',FN,BB,[1 1 1],@(~,~)updateLocalView(fig));
+    btn(t2,[0.53 0.92 0.44 0.06],'🔄 Update View',FN,BB,[1 1 1],@(~,~)updateLocalView(fig));
     locAx = axes('Parent',t2,'Units','normalized','Position',[0.05 0.03 0.90 0.87], ...
         'Color',[.1 .1 .14],'XTick',[],'YTick',[]); axis(locAx,'off');
     text(locAx,0.5,0.5,'Select an IV','Units','normalized', ...
@@ -148,10 +148,10 @@ function app = nav_ui_app(projectRoot)
 
     % ---- OR-3  Auto-Align ----
     t3 = uitab(tg,'Title','OR3:AutoAlign','BackgroundColor',BP);
-    btn(t3,[0.03 0.90 0.94 0.08],'Auto-Add IV (detect road angle)',FN,BA,[1 1 1], ...
+    btn(t3,[0.03 0.90 0.94 0.08],'✨ Auto-Add IV (detect road angle)',FN,BA,[1 1 1], ...
         @(~,~)onAutoAddIV(fig));
-    btn(t3,[0.03 0.80 0.46 0.08],'Head-Up View',FN,BB,[1 1 1],@(~,~)onHeadUp(fig));
-    btn(t3,[0.51 0.80 0.46 0.08],'Normal View',FN,BB,[1 1 1],@(~,~)onNormalView(fig));
+    btn(t3,[0.03 0.80 0.46 0.08],'🧭 Head-Up View',FN,BB,[1 1 1],@(~,~)onHeadUp(fig));
+    btn(t3,[0.51 0.80 0.46 0.08],'🌍 Normal View',FN,BB,[1 1 1],@(~,~)onNormalView(fig));
     or3Info = uicontrol('Parent',t3,'Style','text','Units','normalized', ...
         'Position',[0.03 0.68 0.94 0.10],'String','Auto-align: detects road direction', ...
         'FontName',FN,'FontSize',10,'BackgroundColor',BP,'ForegroundColor',FL, ...
@@ -159,8 +159,7 @@ function app = nav_ui_app(projectRoot)
 
     % ---- OR-4  Street View ----
     t4 = uitab(tg,'Title','OR4:StreetView','BackgroundColor',BP);
-    btn(t4,[0.03 0.92 0.94 0.06],'Generate Street View (click road)',FN,BA,[1 1 1], ...
-        @(~,~)onStreetViewBtn(fig));
+    btn(t4,[0.03 0.90 0.94 0.08],'📸 Generate',FN,BA,[1 1 1],@(~,~)onStreetViewBtn(fig));
     svAx = axes('Parent',t4,'Units','normalized','Position',[0.03 0.03 0.94 0.87], ...
         'Color',[.1 .1 .14],'XTick',[],'YTick',[]); axis(svAx,'off');
     text(svAx,0.5,0.5,'Click a road point','Units','normalized', ...
@@ -168,8 +167,8 @@ function app = nav_ui_app(projectRoot)
 
     % ---- OR-5  Path Plan ----
     t5 = uitab(tg,'Title','OR5:PathPlan','BackgroundColor',BP);
-    btn(t5,[0.03 0.90 0.46 0.08],'Find Path',FN,BA,[1 1 1],@(~,~)onPathBtn(fig));
-    btn(t5,[0.51 0.90 0.46 0.08],'Clear Path',FN,[.6 .3 .3],[1 1 1],@(~,~)onPathClear(fig));
+    btn(t5,[0.03 0.90 0.46 0.08],'📍 Start Path',FN,BA,[1 1 1],@(~,~)onPathBtn(fig));
+    btn(t5,[0.51 0.90 0.46 0.08],'🗑️ Clear',FN,[.6 .3 .3],[1 1 1],@(~,~)onPathClear(fig));
     pathInfo = uicontrol('Parent',t5,'Style','text','Units','normalized', ...
         'Position',[0.03 0.75 0.94 0.12],'String','Click two points to find the shortest road path.', ...
         'FontName',FN,'FontSize',10,'BackgroundColor',BP,'ForegroundColor',FL, ...
