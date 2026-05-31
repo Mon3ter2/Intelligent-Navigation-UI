@@ -1,6 +1,7 @@
 function h = draw_iv(ax, iv, mapHeight, scale, rotAngle, origCenter, rotCenter, isSelected, isHovered)
 %DRAW_IV Draw an IV rectangle (with heading indicator) on map axes.
 %   h = draw_iv(ax, iv, mapHeight, scale, rotAngle, origCenter, rotCenter)
+%   h = draw_iv(ax, iv, mapHeight, scale, rotAngle, origCenter, rotCenter, clickCB)
 %
 %   Inputs:
 %     ax         - axes handle to draw on
@@ -10,9 +11,10 @@ function h = draw_iv(ax, iv, mapHeight, scale, rotAngle, origCenter, rotCenter, 
 %     rotAngle   - current map rotation in degrees
 %     origCenter - [cx, cy] of original image centre
 %     rotCenter  - [cx, cy] of rotated image centre
+%     clickCB    - (optional) callback for ButtonDownFcn on the IV body
 %
 %   Output:
-%     h - column vector of graphics handles (patch, line, text)
+%     h - column vector of graphics handles (patch, line, text, arrowhead)
 
     % ----- Colour palette (cycles by IV id) -----
     palette = [ ...
@@ -77,6 +79,13 @@ function h = draw_iv(ax, iv, mapHeight, scale, rotAngle, origCenter, rotCenter, 
     bodyBackW  = [iv.WorldX - cosA * halfL, iv.WorldY - sinA * halfL];
     [frontR, frontC] = world_to_pixel(bodyFrontW(1), bodyFrontW(2), mapHeight, scale);
     [backR,  backC]  = world_to_pixel(bodyBackW(1),  bodyBackW(2),  mapHeight, scale);
+
+    % Convert arrowhead vertices to pixel coords
+    arrPixC = zeros(3,1);
+    arrPixR = zeros(3,1);
+    for k = 1:3
+        [arrPixR(k), arrPixC(k)] = world_to_pixel(arrowW(k,1), arrowW(k,2), mapHeight, scale);
+    end
 
     % ----- Apply map rotation (original -> rotated pixel space) -----
     if abs(rotAngle) > 0.001
@@ -162,4 +171,3 @@ function h = draw_iv(ax, iv, mapHeight, scale, rotAngle, origCenter, rotCenter, 
     % (We choose not to draw text on map to conform strictly to 8mx3m scale, keeping it clean)
     h = [h1; h2; h3];
 end
-
