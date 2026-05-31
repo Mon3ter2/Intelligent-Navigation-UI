@@ -273,6 +273,7 @@ function onMapClick(fig)
             if isempty(s.IVList),s.IVList=niv;else,s.IVList(end+1)=niv;end
             s.NextIVID=s.NextIVID+1; s.InteractiveMode='idle';
             s.SelectedIVIdx = 0; % 新加车默认不带光圈
+            s.SelectedIVIdx = length(s.IVList);
             set(s.ModeLabel,'String','Mode: Idle','ForegroundColor',[.55 .85 .60]);
             setappdata(fig,'AppState',s); refreshDisp(fig); updateIVLB(fig);
             s = getappdata(fig,'AppState');
@@ -294,10 +295,11 @@ function onMapClick(fig)
             s.NextIVID=s.NextIVID+1; s.InteractiveMode='idle';
             s.SelectedIVIdx = 0; % 新加车默认不带光圈
             set(s.ModeLabel,'String','Mode: Idle','ForegroundColor',[.55 .85 .60]);
-            set(s.OR3Info,'String',sprintf('Auto angle: %.1f deg',a));
+            s.SelectedIVIdx = length(s.IVList);
+            set(s.OR3Info,'String',sprintf('Auto angle: %.1f deg | IV #%d selected',a,niv.ID));
             setappdata(fig,'AppState',s); refreshDisp(fig); updateIVLB(fig);
             s = getappdata(fig,'AppState');
-            setSt(fig,sprintf('  IV #%d auto-aligned at %.1f deg',niv.ID,a),[.4 .9 .5]);
+            setSt(fig,sprintf('  IV #%d auto-aligned at %.1f deg and highlighted.',niv.ID,a),[.4 .9 .5]);
         else
             setSt(fig,'  Not on road!',[1 .4 .4]);
         end; return;
@@ -650,21 +652,27 @@ function onHeadUp(fig)
     if isempty(s.IVList),setSt(fig,'  No IVs.',[1 .4 .4]);return;end
     sel=get(s.IVListbox,'Value');
     if sel<1||sel>length(s.IVList),sel=1;end
+    s.SelectedIVIdx = sel;
     iv=s.IVList(sel); a=90-iv.Angle;
     set(s.RotAngleInput,'String',sprintf('%.1f',a));
     s.RotationAngle=a;
     if abs(a)<0.001, s.RotatedImage=s.MapImage; s.RotCenter=s.OrigCenter;
     else,[ri,~,nw]=rotate_map(s.MapImage,a); s.RotatedImage=ri;
         [nh2,nw2,~]=size(ri); s.RotCenter=[(nw2+1)/2 (nh2+1)/2];end
+    set(s.OR3Info,'String',sprintf('Head-up: IV #%d | heading %.1f deg | map rot %.1f deg',iv.ID,iv.Angle,a));
     setappdata(fig,'AppState',s); refreshDisp(fig);
     setSt(fig,sprintf('  Head-up view for IV #%d (rot=%.1f)',iv.ID,a),[.4 .9 .5]);
-    clearIVSelection(fig);
 end
 function onNormalView(fig)
-    clearIVSelection(fig);
     s=getappdata(fig,'AppState'); s.RotationAngle=0;
     s.RotatedImage=s.MapImage; s.RotCenter=s.OrigCenter;
     set(s.RotAngleInput,'String','0');
+    if s.SelectedIVIdx>=1 && s.SelectedIVIdx<=length(s.IVList)
+        iv = s.IVList(s.SelectedIVIdx);
+        set(s.OR3Info,'String',sprintf('Normal view restored | IV #%d remains selected',iv.ID));
+    else
+        set(s.OR3Info,'String','Auto-align: detects road direction');
+    end
     setappdata(fig,'AppState',s); refreshDisp(fig); setSt(fig,'  Normal view.',[.55 .85 .60]);
 end
 
@@ -762,8 +770,16 @@ function updateLocalView(fig)
     rM=str2double(get(s.RangeInput,'String')); if isnan(rM)||rM<=0,rM=100;end
     [cR,cC]=world_to_pixel(iv.WorldX,iv.WorldY,s.MapHeight,s.Scale);
     rP=rM/s.Scale; li=local_map_view(s.MapImage,cR,cC,rP);
+    if abs(s.RotationAngle - (90 - iv.Angle)) < 0.01
+        li = rotate_map(li, s.RotationAngle);
+    end
     cla(s.LocalAxes); imshow(li,'Parent',s.LocalAxes);
-    title(s.LocalAxes,sprintf('IV#%d R=%.0fm Sc=%g',iv.ID,rM,iv.ScaleFactor), ...
+    if abs(s.RotationAngle - (90 - iv.Angle)) < 0.01
+        titleStr = sprintf('IV#%d R=%.0fm Sc=%g | Head-Up',iv.ID,rM,iv.ScaleFactor);
+    else
+        titleStr = sprintf('IV#%d R=%.0fm Sc=%g',iv.ID,rM,iv.ScaleFactor);
+    end
+    title(s.LocalAxes,titleStr, ...
         'Color',[.85 .88 .95],'FontSize',9);
 end
 
