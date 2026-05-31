@@ -111,10 +111,10 @@ function app = nav_ui_app(projectRoot)
     btn(t1,[0.03 0.82 0.46 0.07],'Show Skeleton',FN,BB,[1 1 1],@(~,~)onSkelShow(fig));
     btn(t1,[0.51 0.82 0.46 0.07],'Show Road Area',FN,BB,[1 1 1],@(~,~)onSkelRoadArea(fig));
     skelInfo = uicontrol('Parent',t1,'Style','text','Units','normalized', ...
-        'Position',[0.03 0.76 0.94 0.05],'String','Points: 0', ...
+        'Position',[0.03 0.75 0.94 0.05],'String','Points: 0', ...
         'FontName',FN,'FontSize',9,'BackgroundColor',BP,'ForegroundColor',FL, ...
         'HorizontalAlignment','left');
-    skelAx = axes('Parent',t1,'Units','normalized','Position',[0.05 0.03 0.90 0.72], ...
+    skelAx = axes('Parent',t1,'Units','normalized','Position',[0.05 0.02 0.90 0.70], ...
         'Color',[.1 .1 .14],'XTick',[],'YTick',[]); axis(skelAx,'off');
 
     % ---- OR-2  Local View ----
@@ -590,7 +590,9 @@ function onSkelClear(fig)
     s.SkelWorldPts=[]; s.SkelPixPts=[]; s.InteractiveMode='idle';
     set(s.ModeLabel,'String','Mode: Idle','ForegroundColor',[.55 .85 .60]);
     set(s.SkelInfo,'String','Points: 0');
-    cla(s.SkelAxes); axis(s.SkelAxes,'off');
+    cla(s.SkelAxes); 
+    set(s.SkelAxes, 'Position', [0.05 0.02 0.90 0.70]);
+    axis(s.SkelAxes,'off');
     setappdata(fig,'AppState',s); refreshDisp(fig); setSt(fig,'  Skeleton cleared.',[.55 .85 .60]);
 end
 function onSkelShow(fig)
@@ -598,6 +600,7 @@ function onSkelShow(fig)
     s=getappdata(fig,'AppState');
     if size(s.SkelWorldPts,1)<2,setSt(fig,'  Need >= 2 skeleton points.',[1 .4 .4]);return;end
     cla(s.SkelAxes);
+    set(s.SkelAxes, 'Position', [0.15 0.14 0.74 0.52]);
     plot(s.SkelAxes, s.SkelWorldPts(:,1), s.SkelWorldPts(:,2), 'g-o', ...
         'LineWidth',2,'MarkerSize',6,'MarkerFaceColor','g');
     set(s.SkelAxes,'Color',[.12 .12 .16],'XColor',[.6 .6 .7],'YColor',[.6 .6 .7]);
@@ -627,7 +630,10 @@ function onSkelRoadArea(fig)
     end
     roadArea=s.RoadMask & nearMask; mi=s.MapImage;
     for ch=1:3,chan=mi(:,:,ch);chan(~roadArea)=0;mi(:,:,ch)=chan;end
-    cla(s.SkelAxes); imshow(mi,'Parent',s.SkelAxes);
+    cla(s.SkelAxes); 
+    set(s.SkelAxes, 'Position', [0.05 0.02 0.90 0.70]);
+    axis(s.SkelAxes, 'off');
+    imshow(mi,'Parent',s.SkelAxes);
     title(s.SkelAxes,'Road Area near Skeleton','Color',[.85 .88 .95],'FontSize',9);
     setSt(fig,'  Road area extracted.',[.4 .9 .5]);
 end
