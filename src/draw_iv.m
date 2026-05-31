@@ -46,9 +46,20 @@ function h = draw_iv(ax, iv, mapHeight, scale, rotAngle, origCenter, rotCenter)
         worldC(k,2) = iv.WorldY + sinA * local(k,1) + cosA * local(k,2);
     end
 
-    % Heading-tip point (for direction indicator)
-    headWx = iv.WorldX + halfL * 0.8 * cosA;
-    headWy = iv.WorldY + halfL * 0.8 * sinA;
+    % Heading-tip points (for direction indicator triangle)
+    % 保证箭头在 1x 缩放下也足够大（最小长度 30 米，约屏幕 18 像素）
+    aLen = max(halfL * 2.5, 30); 
+    aWid = max(halfW * 2.0, 12);
+    arrow_local = [
+        aLen, 0;                    % Front tip
+        aLen - aWid, -aWid * 0.7;   % Left back
+        aLen - aWid,  aWid * 0.7    % Right back
+    ];
+    arrowW = zeros(3, 2);
+    for k = 1:3
+        arrowW(k,1) = iv.WorldX + cosA * arrow_local(k,1) - sinA * arrow_local(k,2);
+        arrowW(k,2) = iv.WorldY + sinA * arrow_local(k,1) + cosA * arrow_local(k,2);
+    end
 
     % ----- Convert to pixel coordinates -----
     pixC = zeros(4,1);   % column (x in axes)
@@ -56,8 +67,13 @@ function h = draw_iv(ax, iv, mapHeight, scale, rotAngle, origCenter, rotCenter)
     for k = 1:4
         [pixR(k), pixC(k)] = world_to_pixel(worldC(k,1), worldC(k,2), mapHeight, scale);
     end
-    [headR, headC_] = world_to_pixel(headWx, headWy, mapHeight, scale);
-    [centR, centC]   = world_to_pixel(iv.WorldX, iv.WorldY, mapHeight, scale);
+    
+    arrowC = zeros(3,1);
+    arrowR = zeros(3,1);
+    for k = 1:3
+        [arrowR(k), arrowC(k)] = world_to_pixel(arrowW(k,1), arrowW(k,2), mapHeight, scale);
+    end
+    [centR, centC] = world_to_pixel(iv.WorldX, iv.WorldY, mapHeight, scale);
 
     % ----- Apply map rotation (original -> rotated pixel space) -----
     if abs(rotAngle) > 0.001
@@ -70,10 +86,12 @@ function h = draw_iv(ax, iv, mapHeight, scale, rotAngle, origCenter, rotCenter)
             pixC(k) =  cosM * dc + sinM * dr + rotCenter(1);
             pixR(k) = -sinM * dc + cosM * dr + rotCenter(2);
         end
-        % heading tip
-        dc = headC_ - origCenter(1);  dr = headR - origCenter(2);
-        headC_ =  cosM * dc + sinM * dr + rotCenter(1);
-        headR  = -sinM * dc + cosM * dr + rotCenter(2);
+        % heading arrow
+        for k = 1:3
+            dc = arrowC(k) - origCenter(1);  dr = arrowR(k) - origCenter(2);
+            arrowC(k) =  cosM * dc + sinM * dr + rotCenter(1);
+            arrowR(k) = -sinM * dc + cosM * dr + rotCenter(2);
+        end
         % centre
         dc = centC - origCenter(1);  dr = centR - origCenter(2);
         centC =  cosM * dc + sinM * dr + rotCenter(1);
@@ -85,11 +103,25 @@ function h = draw_iv(ax, iv, mapHeight, scale, rotAngle, origCenter, rotCenter)
         'FaceAlpha', 0.55, 'EdgeColor', faceClr * 0.55, 'LineWidth', 2);
     set(h1, 'HitTest', 'off');
 
-    h2 = plot(ax, [centC, headC_], [centR, headR], '-', ...
-        'Color', [1 1 0.3], 'LineWidth', 2);
+    h2 = patch(ax, arrowC, arrowR, [1 0.1 0.1], ...
+        'FaceAlpha', 0.9, 'EdgeColor', 'k', 'LineWidth', 1.5);
     set(h2, 'HitTest', 'off');
 
-    h3 = text(ax, centC, centR - 14, sprintf('#%d', iv.ID), ...
+    % Calculate screen direction to place text behind the car
+    dirC = arrowC(1) - centC;
+    dirR = arrowR(1) - centR;
+    dLen = sqrt(dirC^2 + dirR^2);
+    if dLen > 0.1
+        dirC = dirC / dLen;
+        dirR = dirR / dLen;
+    else
+        dirC = 0; dirR = -1;
+    end
+    
+    textC = centC - 20 * dirC;
+    textR = centR - 20 * dirR;
+
+    h3 = text(ax, textC, textR, sprintf('#%d', iv.ID), ...
         'Color', 'w', 'FontSize', 9, 'FontWeight', 'bold', ...
         'HorizontalAlignment', 'center', ...
         'BackgroundColor', [0.1 0.1 0.15]);
