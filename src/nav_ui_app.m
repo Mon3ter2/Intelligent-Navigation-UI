@@ -648,28 +648,41 @@ function onSkelRoadArea(fig)
     clearIVSelection(fig);
     s=getappdata(fig,'AppState');
     if size(s.SkelPixPts,1)<2,setSt(fig,'  Need >= 2 skeleton points.',[1 .4 .4]);return;end
-    setSt(fig,'  Computing road area near skeleton...',[1 .8 .3]); drawnow;
-    [H,W]=size(s.RoadMask); nearMask=false(H,W); radius=30;
-    sp=s.SkelPixPts;
+    setSt(fig,'  Computing road area near skeleton (optimized)...',[1 .8 .3]); drawnow;
+    [H,W]=size(s.RoadMask);
+    
+    % 1. Create a blank binary image and draw the skeleton lines using vectorized interpolation
+    skelIm = false(H,W);
+    sp = s.SkelPixPts;
     for i=1:size(sp,1)-1
-        r1=sp(i,1);c1=sp(i,2);r2=sp(i+1,1);c2=sp(i+1,2);
+        r1=sp(i,1); c1=sp(i,2); r2=sp(i+1,1); c2=sp(i+1,2);
         nS=max(abs(r2-r1),abs(c2-c1)); if nS==0,nS=1;end
-        for step=0:nS
-            t=step/nS; pr=round(r1+t*(r2-r1)); pc=round(c1+t*(c2-c1));
-            rMi=max(1,pr-radius);rMa=min(H,pr+radius);
-            cMi=max(1,pc-radius);cMa=min(W,pc+radius);
-            [cc,rr]=meshgrid(cMi:cMa,rMi:rMa);
-            nearMask(rMi:rMa,cMi:cMa)=nearMask(rMi:rMa,cMi:cMa)|((rr-pr).^2+(cc-pc).^2<=radius^2);
-        end
+        t=(0:nS)'/nS;
+        pr=round(r1+t*(r2-r1));
+        pc=round(c1+t*(c2-c1));
+        valid=pr>=1 & pr<=H & pc>=1 & pc<=W;
+        skelIm(sub2ind([H,W],pr(valid),pc(valid)))=true;
     end
+    
+    % 2. Create 30px circular kernel for convolution-based dilation (Zero-Toolbox compliant)
+    radius=30;
+    [kx,ky]=meshgrid(-radius:radius,-radius:radius);
+    K=double(kx.^2+ky.^2<=radius^2);
+    
+    % 3. Fast convolution to get precise spatial neighborhood mask
+    nearMask = conv2(double(skelIm),K,'same')>0;
+    
+    % 4. Combine with road mask and apply color masking
     roadArea=s.RoadMask & nearMask; mi=s.MapImage;
     for ch=1:3,chan=mi(:,:,ch);chan(~roadArea)=0;mi(:,:,ch)=chan;end
+    
+    % 5. Render
     cla(s.SkelAxes); 
     set(s.SkelAxes, 'Position', [0.05 0.02 0.90 0.70]);
     axis(s.SkelAxes, 'off');
     imshow(mi,'Parent',s.SkelAxes);
     title(s.SkelAxes,'Road Area near Skeleton','Color',[.85 .88 .95],'FontSize',9);
-    setSt(fig,'  Road area extracted.',[.4 .9 .5]);
+    setSt(fig,'  Road area extracted (convolution optimized).',[.4 .9 .5]);
 end
 
 % ---------- OR-3 Auto-Align ----------
