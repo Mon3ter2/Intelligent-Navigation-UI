@@ -50,8 +50,8 @@ function h = draw_iv(ax, iv, mapHeight, scale, rotAngle, origCenter, rotCenter, 
 
     % Heading-tip points (for direction indicator triangle)
     % 保证箭头在 1x 缩放下也足够大（最小长度 30 米，约屏幕 18 像素）
-    aLen = max(halfL * 2.5, 30); 
-    aWid = max(halfW * 2.0, 12);
+    aLen = max(halfL * 2.9, 36);
+    aWid = max(halfW * 2.6, 15);
     arrow_local = [
         aLen, 0;                    % Front tip
         aLen - aWid, -aWid * 0.7;   % Left back
@@ -75,7 +75,10 @@ function h = draw_iv(ax, iv, mapHeight, scale, rotAngle, origCenter, rotCenter, 
     for k = 1:3
         [arrowR(k), arrowC(k)] = world_to_pixel(arrowW(k,1), arrowW(k,2), mapHeight, scale);
     end
-    [centR, centC] = world_to_pixel(iv.WorldX, iv.WorldY, mapHeight, scale);
+    bodyFrontW = [iv.WorldX + cosA * halfL, iv.WorldY + sinA * halfL];
+    bodyBackW  = [iv.WorldX - cosA * halfL, iv.WorldY - sinA * halfL];
+    [frontR, frontC] = world_to_pixel(bodyFrontW(1), bodyFrontW(2), mapHeight, scale);
+    [backR,  backC]  = world_to_pixel(bodyBackW(1),  bodyBackW(2),  mapHeight, scale);
 
     % Convert arrowhead vertices to pixel coords
     arrPixC = zeros(3,1);
@@ -101,17 +104,13 @@ function h = draw_iv(ax, iv, mapHeight, scale, rotAngle, origCenter, rotCenter, 
             arrowC(k) =  cosM * dc + sinM * dr + rotCenter(1);
             arrowR(k) = -sinM * dc + cosM * dr + rotCenter(2);
         end
-        % centre
-        dc = centC - origCenter(1);  dr = centR - origCenter(2);
-        centC =  cosM * dc + sinM * dr + rotCenter(1);
-        centR = -sinM * dc + cosM * dr + rotCenter(2);
-        % arrowhead vertices
-        for k = 1:3
-            dc = arrPixC(k) - origCenter(1);
-            dr = arrPixR(k) - origCenter(2);
-            arrPixC(k) =  cosM * dc + sinM * dr + rotCenter(1);
-            arrPixR(k) = -sinM * dc + cosM * dr + rotCenter(2);
-        end
+        % front/back anchor line
+        dc = frontC - origCenter(1);  dr = frontR - origCenter(2);
+        frontC =  cosM * dc + sinM * dr + rotCenter(1);
+        frontR = -sinM * dc + cosM * dr + rotCenter(2);
+        dc = backC - origCenter(1);  dr = backR - origCenter(2);
+        backC =  cosM * dc + sinM * dr + rotCenter(1);
+        backR = -sinM * dc + cosM * dr + rotCenter(2);
     end
 
     if nargin < 8, isSelected = false; end
@@ -123,16 +122,31 @@ function h = draw_iv(ax, iv, mapHeight, scale, rotAngle, origCenter, rotCenter, 
         edgeClr = [1 0.85 0];
         lineWidth = 3.5;
         faceAlpha = 1.0;
+        arrowFill = [1 0.08 0.08];
+        arrowEdge = [1 1 1];
+        arrowWidth = 2.3;
+        spineClr = [1 1 1];
+        spineWidth = 2.0;
     elseif isHovered
         % 鼠标滑过悬浮初始交互：亮橙色中等粗边框，微透明
         edgeClr = [1 0.6 0.1];
         lineWidth = 2.0;
         faceAlpha = 0.9;
+        arrowFill = [1 0.15 0.15];
+        arrowEdge = [1 0.95 0.65];
+        arrowWidth = 1.9;
+        spineClr = [1 0.95 0.65];
+        spineWidth = 1.6;
     else
         % 默认状态：常规黑色细边框，中度透明
         edgeClr = 'k';
         lineWidth = 1;
         faceAlpha = 0.75;
+        arrowFill = [1 0.12 0.12];
+        arrowEdge = [1 1 1];
+        arrowWidth = 1.7;
+        spineClr = [1 0.97 0.72];
+        spineWidth = 1.4;
     end
 
     % ----- Draw -----
@@ -142,13 +156,18 @@ function h = draw_iv(ax, iv, mapHeight, scale, rotAngle, origCenter, rotCenter, 
     set(h1, 'HitTest', 'off');
 
 
-    h2 = patch(ax, arrowC, arrowR, [1 0.1 0.1], ...
-        'FaceAlpha', 0.9, 'EdgeColor', 'k', 'LineWidth', 1.5, ...
+    h2 = line(ax, [backC frontC], [backR frontR], ...
+        'Color', spineClr, 'LineWidth', spineWidth, 'Clipping', 'on', ...
         'PickableParts', 'none');
     set(h2, 'HitTest', 'off');
+
+    h3 = patch(ax, arrowC, arrowR, arrowFill, ...
+        'FaceAlpha', 0.96, 'EdgeColor', arrowEdge, 'LineWidth', arrowWidth, ...
+        'PickableParts', 'none');
+    set(h3, 'HitTest', 'off');
 
 
     % Calculate screen direction to place text behind the car
     % (We choose not to draw text on map to conform strictly to 8mx3m scale, keeping it clean)
-    h = [h1; h2];
+    h = [h1; h2; h3];
 end
