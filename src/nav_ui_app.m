@@ -73,7 +73,7 @@ function app = nav_ui_app(projectRoot)
         'Position',[0.03 0.77 0.94 0.088],'String',{'(none)'},'Value',1, ...
         'FontName',FN,'FontSize',9, ...
         'BackgroundColor',[.28 .30 .36],'ForegroundColor',[.9 .9 .95], ...
-        'Callback',@(~,~)updateLocalView(fig));
+        'Callback',@(~,~)onListboxSelect(fig));
 
     % ========== MEASUREMENT ==========
     sep(rp,0.76,BB); stit(rp,0.74,'MEASUREMENT',FN,BP,FS);
@@ -179,7 +179,7 @@ function app = nav_ui_app(projectRoot)
     s.RotCenter     = s.OrigCenter;
     s.InteractiveMode = 'idle';
     s.IVList        = [];         s.NextIVID = 1;
-    s.TempPoints    = [];
+    s.SelectedIVIdx = 0;          s.HoveredIVIdx = 0;          s.TempPoints    = [];
     % OR-1
     s.SkelWorldPts  = [];         s.SkelPixPts = [];
     % OR-5
@@ -198,6 +198,7 @@ function app = nav_ui_app(projectRoot)
     s.ClickCB = @(~,~) onMapClick(fig);
     setappdata(fig,'AppState',s);
     set(hImg,'ButtonDownFcn',s.ClickCB);
+    set(fig, 'WindowButtonMotionFcn', @(~,~) onMouseMove(fig));
     app = s;
 end
 
@@ -220,35 +221,82 @@ function onMapClick(fig)
     end
     [wx,wy] = pixel_to_world(round(oR),round(oC),s.MapHeight,s.Scale);
 
+    clickedIVIdx = check_iv_click(wx, wy, s.IVList);
+    clickedIVStr = '';
+    if clickedIVIdx > 0
+        clickedIVStr = sprintf(' on IV #%d', s.IVList(clickedIVIdx).ID);
+        s.SelectedIVIdx = clickedIVIdx;
+        set(s.IVListbox, 'Value', clickedIVIdx);
+        if strcmp(s.InteractiveMode, 'idle')
+            setappdata(fig, 'AppState', s);
+            refreshDisp(fig);
+            s = getappdata(fig, 'AppState');
+        else
+            setappdata(fig, 'AppState', s);
+            updateLocalView(fig);
+        end
+    else
+        % 当选中车时，如果点击地图别的地方，状态从选中交互变回默认状态
+        if s.SelectedIVIdx ~= 0
+            s.SelectedIVIdx = 0;
+            if strcmp(s.InteractiveMode, 'idle')
+                setappdata(fig, 'AppState', s);
+                refreshDisp(fig);
+                s = getappdata(fig, 'AppState');
+            else
+                setappdata(fig, 'AppState', s);
+                updateLocalView(fig);
+            end
+        end
+    end
+
+
     switch s.InteractiveMode
     case 'idle'
-        setSt(fig,sprintf('  Position: X=%.1f m, Y=%.1f m  |  Pixel(%d,%d)', ...
-            wx,wy,round(oC),round(oR)),[.55 .85 .60]);
+        if clickedIVIdx > 0
+            setSt(fig,sprintf('  Clicked on IV #%d at X=%.1f m, Y=%.1f m', ...
+                s.IVList(clickedIVIdx).ID, wx, wy),[.55 .85 .60]);
+        else
+            setSt(fig,sprintf('  Position: X=%.1f m, Y=%.1f m  |  Pixel(%d,%d)', ...
+                wx,wy,round(oC),round(oR)),[.55 .85 .60]);
+        end
 
     case 'add_iv'
+        if clickedIVIdx > 0
+            setSt(fig,sprintf('  Cannot place IV here: Area occupied by IV #%d', s.IVList(clickedIVIdx).ID),[1 .4 .4]);
+            return;
+        end
         if is_on_road(round(oR),round(oC),s.RoadMask)
             a=str2double(get(s.AngleInput,'String')); if isnan(a),a=0;end
             sf=str2double(get(s.ScaleInput,'String')); if isnan(sf)||sf<=0,sf=1;end
             niv=create_iv(s.NextIVID,wx,wy,a,sf);
             if isempty(s.IVList),s.IVList=niv;else,s.IVList(end+1)=niv;end
             s.NextIVID=s.NextIVID+1; s.InteractiveMode='idle';
+            s.SelectedIVIdx = 0; % 新加车默认不带光圈
             set(s.ModeLabel,'String','Mode: Idle','ForegroundColor',[.55 .85 .60]);
             setappdata(fig,'AppState',s); refreshDisp(fig); updateIVLB(fig);
+            s = getappdata(fig,'AppState');
             setSt(fig,sprintf('  IV #%d at (%.1f,%.1f) angle=%.1f',niv.ID,wx,wy,a),[.4 .9 .5]);
         else
             setSt(fig,'  Not on road! Click a road area.',[1 .4 .4]);
         end; return;
 
     case 'add_iv_auto'
+        if clickedIVIdx > 0
+            setSt(fig,sprintf('  Cannot place IV here: Area occupied by IV #%d', s.IVList(clickedIVIdx).ID),[1 .4 .4]);
+            return;
+        end
         if is_on_road(round(oR),round(oC),s.RoadMask)
             a=find_road_direction(round(oR),round(oC),s.RoadMask);
             sf=str2double(get(s.ScaleInput,'String')); if isnan(sf)||sf<=0,sf=1;end
             niv=create_iv(s.NextIVID,wx,wy,a,sf);
             if isempty(s.IVList),s.IVList=niv;else,s.IVList(end+1)=niv;end
             s.NextIVID=s.NextIVID+1; s.InteractiveMode='idle';
+            s.SelectedIVIdx = 0; % 新加车默认不带光圈
             set(s.ModeLabel,'String','Mode: Idle','ForegroundColor',[.55 .85 .60]);
             set(s.OR3Info,'String',sprintf('Auto angle: %.1f deg',a));
             setappdata(fig,'AppState',s); refreshDisp(fig); updateIVLB(fig);
+            s = getappdata(fig,'AppState');
             setSt(fig,sprintf('  IV #%d auto-aligned at %.1f deg',niv.ID,a),[.4 .9 .5]);
         else
             setSt(fig,'  Not on road!',[1 .4 .4]);
@@ -261,7 +309,11 @@ function onMapClick(fig)
         hm=plot(s.MapAxes,cC,cR,'ro','MarkerSize',10,'LineWidth',2,'MarkerFaceColor',[1 .3 .3]);
         set(hm,'HitTest','off');
         if n==1
-            setSt(fig,sprintf('  Pt1:(%.1f,%.1f) click 2nd...',wx,wy),[1 .8 .3]);
+            if clickedIVIdx > 0
+                setSt(fig,sprintf('  Pt1:(%.1f,%.1f)%s click 2nd...',wx,wy,clickedIVStr),[1 .8 .3]);
+            else
+                setSt(fig,sprintf('  Pt1:(%.1f,%.1f) click 2nd...',wx,wy),[1 .8 .3]);
+            end
         else
             p1=s.TempPoints(1,:); p2=s.TempPoints(2,:);
             d=sqrt((p2(1)-p1(1))^2+(p2(2)-p1(2))^2);
@@ -271,7 +323,11 @@ function onMapClick(fig)
                 'BackgroundColor',[.8 .15 .15],'HorizontalAlignment','center');
             set(ht,'HitTest','off');
             set(s.DistResult,'String',sprintf('Dist: %.2f m',d));
-            setSt(fig,sprintf('  Distance = %.2f m',d),[.4 .9 .5]);
+            if clickedIVIdx > 0
+                setSt(fig,sprintf('  Distance = %.2f m (to IV #%d)',d,s.IVList(clickedIVIdx).ID),[.4 .9 .5]);
+            else
+                setSt(fig,sprintf('  Distance = %.2f m',d),[.4 .9 .5]);
+            end
             s.InteractiveMode='idle'; s.TempPoints=[];
             set(s.ModeLabel,'String','Mode: Idle','ForegroundColor',[.55 .85 .60]);
         end
@@ -292,7 +348,11 @@ function onMapClick(fig)
         for k=2:n,dx=s.TempPoints(k,1)-s.TempPoints(k-1,1);dy=s.TempPoints(k,2)-s.TempPoints(k-1,2);
             tLen=tLen+sqrt(dx^2+dy^2);end
         set(s.TrajResult,'String',sprintf('Traj: %.2f m',tLen));
-        setSt(fig,sprintf('  Trajectory: %d pts, %.2f m',n,tLen),[.3 .7 1]);
+        if clickedIVIdx > 0
+            setSt(fig,sprintf('  Trajectory pt on IV #%d: %d pts, %.2f m',s.IVList(clickedIVIdx).ID,n,tLen),[.3 .7 1]);
+        else
+            setSt(fig,sprintf('  Trajectory: %d pts, %.2f m',n,tLen),[.3 .7 1]);
+        end
 
     case 'skeleton'
         if is_on_road(round(oR),round(oC),s.RoadMask)
@@ -315,14 +375,22 @@ function onMapClick(fig)
             end
             hold(s.MapAxes,'off');
             set(s.SkelInfo,'String',sprintf('Points: %d',n));
-            setSt(fig,sprintf('  Skeleton pt %d: (%.1f,%.1f)',n,wx,wy),[.4 .9 .5]);
+            if clickedIVIdx > 0
+                setSt(fig,sprintf('  Skeleton pt %d: (%.1f,%.1f)%s',n,wx,wy,clickedIVStr),[.4 .9 .5]);
+            else
+                setSt(fig,sprintf('  Skeleton pt %d: (%.1f,%.1f)',n,wx,wy),[.4 .9 .5]);
+            end
         else
             setSt(fig,'  Not on road!',[1 .4 .4]);
         end
 
     case 'street_view'
         if is_on_road(round(oR),round(oC),s.RoadMask)
-            setSt(fig,'  Generating street view...',[1 .8 .3]); drawnow;
+            if clickedIVIdx > 0
+                setSt(fig,sprintf('  Generating street view at IV #%d...',s.IVList(clickedIVIdx).ID),[1 .8 .3]); drawnow;
+            else
+                setSt(fig,'  Generating street view...',[1 .8 .3]); drawnow;
+            end
             ang=find_road_direction(round(oR),round(oC),s.RoadMask);
             svImg=generate_street_view(s.MapImage,round(oR),round(oC),ang,s.MapHeight,s.Scale);
             cla(s.SVAxes); imshow(svImg,'Parent',s.SVAxes);
@@ -341,10 +409,19 @@ function onMapClick(fig)
         hm=plot(s.MapAxes,cC,cR,'m^','MarkerSize',12,'LineWidth',2,'MarkerFaceColor','m');
         set(hm,'HitTest','off'); hold(s.MapAxes,'off');
         if n==1
-            setSt(fig,sprintf('  Start: (%.1f,%.1f) click destination...',wx,wy),[1 .8 .3]);
-            set(s.PathInfo,'String','Start set. Click destination.');
+            if clickedIVIdx > 0
+                setSt(fig,sprintf('  Start set at IV #%d. Click destination.',s.IVList(clickedIVIdx).ID),[1 .8 .3]);
+                set(s.PathInfo,'String',sprintf('Start set at IV #%d.',s.IVList(clickedIVIdx).ID));
+            else
+                setSt(fig,sprintf('  Start: (%.1f,%.1f) click destination...',wx,wy),[1 .8 .3]);
+                set(s.PathInfo,'String','Start set. Click destination.');
+            end
         else
-            setSt(fig,'  Computing shortest path...',[1 .8 .3]); drawnow;
+            if clickedIVIdx > 0
+                setSt(fig,sprintf('  Computing shortest path to IV #%d...',s.IVList(clickedIVIdx).ID),[1 .8 .3]); drawnow;
+            else
+                setSt(fig,'  Computing shortest path...',[1 .8 .3]); drawnow;
+            end
             [rr1,rc1]=find_nearest_road(round(s.TempPoints(1,5)),round(s.TempPoints(1,6)),s.RoadMask);
             [rr2,rc2]=find_nearest_road(round(s.TempPoints(2,5)),round(s.TempPoints(2,6)),s.RoadMask);
             [pR,pC]=road_path_bfs(s.RoadMask,rr1,rc1,rr2,rc2);
@@ -362,6 +439,7 @@ function onMapClick(fig)
                 set(s.PathInfo,'String',sprintf('Path: %.1f m  (%d px)',pLen,length(pR)));
                 setSt(fig,sprintf('  Shortest path = %.1f m',pLen),[.4 .9 .5]);
                 setappdata(fig,'AppState',s); refreshDisp(fig);
+                s = getappdata(fig,'AppState');
             end
             s.InteractiveMode='idle'; s.TempPoints=[];
             set(s.ModeLabel,'String','Mode: Idle','ForegroundColor',[.55 .85 .60]);
@@ -373,22 +451,30 @@ end
 % ---------- Button callbacks ----------
 
 function onAddIV(fig)
+    clearIVSelection(fig);
     s=getappdata(fig,'AppState'); s.InteractiveMode='add_iv'; s.TempPoints=[];
     set(s.ModeLabel,'String','Mode: ADD IV','ForegroundColor',[.25 .55 .85]);
     setappdata(fig,'AppState',s); setSt(fig,'  Click a road to place IV.',[1 .8 .3]);
 end
 function onRemoveIV(fig)
+    clearIVSelection(fig);
     s=getappdata(fig,'AppState');
     if isempty(s.IVList),setSt(fig,'  No IVs.',[1 .4 .4]);return;end
     sel=get(s.IVListbox,'Value');
     if sel<1||sel>length(s.IVList),setSt(fig,'  Select an IV.',[1 .4 .4]);return;end
     rid=s.IVList(sel).ID; s.IVList(sel)=[];
-    if isempty(s.IVList),set(s.IVListbox,'Value',1);
-    else,set(s.IVListbox,'Value',min(sel,length(s.IVList)));end
+    s.SelectedIVIdx = 0; % 移除当前选中的小车状态
+    if isempty(s.IVList)
+        set(s.IVListbox,'Value',1);
+    else
+        set(s.IVListbox,'Value',min(sel,length(s.IVList)));
+    end
     setappdata(fig,'AppState',s); refreshDisp(fig); updateIVLB(fig);
+    s = getappdata(fig,'AppState');
     setSt(fig,sprintf('  IV #%d removed.',rid),[.4 .9 .5]);
 end
 function onReportIV(fig)
+    clearIVSelection(fig);
     s=getappdata(fig,'AppState');
     if isempty(s.IVList),msgbox('No IVs loaded.','Report','warn');return;end
     lines=cell(1,length(s.IVList));
@@ -399,22 +485,26 @@ function onReportIV(fig)
     setSt(fig,sprintf('  Reported %d IVs.',length(s.IVList)),[.4 .9 .5]);
 end
 function onDistBtn(fig)
+    clearIVSelection(fig);
     s=getappdata(fig,'AppState'); s.InteractiveMode='measure_dist'; s.TempPoints=[];
     set(s.ModeLabel,'String','Mode: DISTANCE','ForegroundColor',[1 .45 .45]);
     setappdata(fig,'AppState',s); setSt(fig,'  Click first point...',[1 .8 .3]);
 end
 function onTrajBtn(fig)
+    clearIVSelection(fig);
     s=getappdata(fig,'AppState'); s.InteractiveMode='measure_traj'; s.TempPoints=[];
     set(s.ModeLabel,'String','Mode: TRAJECTORY','ForegroundColor',[.3 .7 1]);
     setappdata(fig,'AppState',s); setSt(fig,'  Click points to build trajectory...',[1 .8 .3]);
 end
 function onClearMeas(fig)
+    clearIVSelection(fig);
     s=getappdata(fig,'AppState'); s.InteractiveMode='idle'; s.TempPoints=[];
     set(s.ModeLabel,'String','Mode: Idle','ForegroundColor',[.55 .85 .60]);
     set(s.DistResult,'String','Dist: --'); set(s.TrajResult,'String','Traj: --');
     setappdata(fig,'AppState',s); refreshDisp(fig); setSt(fig,'  Cleared.',[.55 .85 .60]);
 end
 function onRotate(fig)
+    clearIVSelection(fig);
     s=getappdata(fig,'AppState');
     a=str2double(get(s.RotAngleInput,'String'));
     if isnan(a),setSt(fig,'  Invalid angle.',[1 .4 .4]);return;end
@@ -428,17 +518,20 @@ end
 
 % ---------- OR-1 Skeleton ----------
 function onSkelExtract(fig)
+    clearIVSelection(fig);
     s=getappdata(fig,'AppState'); s.InteractiveMode='skeleton'; s.TempPoints=[];
     set(s.ModeLabel,'String','Mode: SKELETON','ForegroundColor',[.3 .85 .4]);
     setappdata(fig,'AppState',s); setSt(fig,'  Click road points to extract skeleton...',[1 .8 .3]);
 end
 function onSkelEnd(fig)
+    clearIVSelection(fig);
     s=getappdata(fig,'AppState'); s.InteractiveMode='idle';
     set(s.ModeLabel,'String','Mode: Idle','ForegroundColor',[.55 .85 .60]);
     setappdata(fig,'AppState',s);
     setSt(fig,sprintf('  Skeleton: %d pts.',size(s.SkelWorldPts,1)),[.4 .9 .5]);
 end
 function onSkelClear(fig)
+    clearIVSelection(fig);
     s=getappdata(fig,'AppState');
     s.SkelWorldPts=[]; s.SkelPixPts=[]; s.InteractiveMode='idle';
     set(s.ModeLabel,'String','Mode: Idle','ForegroundColor',[.55 .85 .60]);
@@ -447,6 +540,7 @@ function onSkelClear(fig)
     setappdata(fig,'AppState',s); refreshDisp(fig); setSt(fig,'  Skeleton cleared.',[.55 .85 .60]);
 end
 function onSkelShow(fig)
+    clearIVSelection(fig);
     s=getappdata(fig,'AppState');
     if size(s.SkelWorldPts,1)<2,setSt(fig,'  Need >= 2 skeleton points.',[1 .4 .4]);return;end
     cla(s.SkelAxes);
@@ -460,6 +554,7 @@ function onSkelShow(fig)
     setSt(fig,'  Skeleton displayed in world coordinates.',[.4 .9 .5]);
 end
 function onSkelRoadArea(fig)
+    clearIVSelection(fig);
     s=getappdata(fig,'AppState');
     if size(s.SkelPixPts,1)<2,setSt(fig,'  Need >= 2 skeleton points.',[1 .4 .4]);return;end
     setSt(fig,'  Computing road area near skeleton...',[1 .8 .3]); drawnow;
@@ -485,6 +580,7 @@ end
 
 % ---------- OR-3 Auto-Align ----------
 function onAutoAddIV(fig)
+    clearIVSelection(fig);
     s=getappdata(fig,'AppState'); s.InteractiveMode='add_iv_auto'; s.TempPoints=[];
     set(s.ModeLabel,'String','Mode: AUTO-ADD IV','ForegroundColor',[.25 .55 .85]);
     setappdata(fig,'AppState',s); setSt(fig,'  Click road - angle auto-detected.',[1 .8 .3]);
@@ -502,8 +598,10 @@ function onHeadUp(fig)
         [nh2,nw2,~]=size(ri); s.RotCenter=[(nw2+1)/2 (nh2+1)/2];end
     setappdata(fig,'AppState',s); refreshDisp(fig);
     setSt(fig,sprintf('  Head-up view for IV #%d (rot=%.1f)',iv.ID,a),[.4 .9 .5]);
+    clearIVSelection(fig);
 end
 function onNormalView(fig)
+    clearIVSelection(fig);
     s=getappdata(fig,'AppState'); s.RotationAngle=0;
     s.RotatedImage=s.MapImage; s.RotCenter=s.OrigCenter;
     set(s.RotAngleInput,'String','0');
@@ -512,6 +610,7 @@ end
 
 % ---------- OR-4 Street View ----------
 function onStreetViewBtn(fig)
+    clearIVSelection(fig);
     s=getappdata(fig,'AppState'); s.InteractiveMode='street_view'; s.TempPoints=[];
     set(s.ModeLabel,'String','Mode: STREET VIEW','ForegroundColor',[.8 .6 .2]);
     setappdata(fig,'AppState',s); setSt(fig,'  Click a road point for street view.',[1 .8 .3]);
@@ -519,6 +618,7 @@ end
 
 % ---------- OR-5 Path Planning ----------
 function onPathBtn(fig)
+    clearIVSelection(fig);
     s=getappdata(fig,'AppState'); s.InteractiveMode='path_plan'; s.TempPoints=[];
     s.PathPixels=[];
     set(s.ModeLabel,'String','Mode: PATH PLAN','ForegroundColor',[.85 .4 .85]);
@@ -526,6 +626,7 @@ function onPathBtn(fig)
     set(s.PathInfo,'String','Click start point...'); setSt(fig,'  Click start point.',[1 .8 .3]);
 end
 function onPathClear(fig)
+    clearIVSelection(fig);
     s=getappdata(fig,'AppState'); s.PathPixels=[]; s.TempPoints=[];
     s.InteractiveMode='idle';
     set(s.ModeLabel,'String','Mode: Idle','ForegroundColor',[.55 .85 .60]);
@@ -546,7 +647,7 @@ function refreshDisp(fig)
     oc=s.OrigCenter; rc=s.RotCenter;
     % IVs
     for k=1:length(s.IVList)
-        draw_iv(s.MapAxes,s.IVList(k),s.MapHeight,s.Scale,s.RotationAngle,oc,rc);
+        draw_iv(s.MapAxes,s.IVList(k),s.MapHeight,s.Scale,s.RotationAngle,oc,rc, k==s.SelectedIVIdx, k==s.HoveredIVIdx);
     end
     % Skeleton overlay
     if size(s.SkelPixPts,1)>=2
@@ -573,17 +674,25 @@ end
 
 function updateIVLB(fig)
     s=getappdata(fig,'AppState');
-    if isempty(s.IVList),set(s.IVListbox,'String',{'(none)'},'Value',1);return;end
+    if isempty(s.IVList)
+        set(s.IVListbox,'String',{'(none)'},'Value',1);
+        return;
+    end
     items=cell(1,length(s.IVList));
-    for k=1:length(s.IVList),iv=s.IVList(k);
-        items{k}=sprintf('#%d (%.0f,%.0f) %g deg',iv.ID,iv.WorldX,iv.WorldY,iv.Angle);end
-    v=min(get(s.IVListbox,'Value'),length(items)); if v<1,v=1;end
+    for k=1:length(s.IVList)
+        iv=s.IVList(k);
+        items{k}=sprintf('#%d (%.0f,%.0f) %g deg',iv.ID,iv.WorldX,iv.WorldY,iv.Angle);
+    end
+    v = s.SelectedIVIdx;
+    if v < 1 || v > length(items)
+        v = 1;
+    end
     set(s.IVListbox,'String',items,'Value',v);
 end
 
 function updateLocalView(fig)
     s=getappdata(fig,'AppState');
-    sel=get(s.IVListbox,'Value');
+    sel=s.SelectedIVIdx;
     if isempty(s.IVList)||sel<1||sel>length(s.IVList)
         cla(s.LocalAxes);axis(s.LocalAxes,'off');
         text(s.LocalAxes,0.5,0.5,'Select an IV','Units','normalized', ...
@@ -635,3 +744,102 @@ function stit(p,y,txt,fn,bg,fg)
         'FontName',fn,'FontSize',9,'FontWeight','bold', ...
         'BackgroundColor',bg,'ForegroundColor',fg,'HorizontalAlignment','center');
 end
+
+function idx = check_iv_click(wx, wy, ivList)
+    idx = 0;
+    if isempty(ivList), return; end
+    % Check backwards so top-most is selected
+    for k = length(ivList):-1:1
+        iv = ivList(k);
+        dx = wx - iv.WorldX;
+        dy = wy - iv.WorldY;
+        dist = sqrt(dx^2 + dy^2);
+        halfL = (iv.Length * iv.ScaleFactor) / 2;
+        % 自适应高精度判定，最小仅 12 米（约 7 像素），紧密贴合方形车身，鼠标没移上绝不触发！
+        click_radius = max(12, halfL * 1.5);
+        if dist <= click_radius
+            idx = k;
+            return;
+        end
+    end
+end
+
+function onListboxSelect(fig)
+    s = getappdata(fig, 'AppState');
+    if isempty(s.IVList)
+        s.SelectedIVIdx = 0;
+    else
+        s.SelectedIVIdx = get(s.IVListbox, 'Value');
+    end
+    setappdata(fig, 'AppState', s);
+    refreshDisp(fig);
+end
+
+function onMouseMove(fig)
+    s = getappdata(fig, 'AppState');
+    if isempty(s) || isempty(s.IVList)
+        if ~isempty(s) && s.HoveredIVIdx ~= 0
+            s.HoveredIVIdx = 0;
+            set(fig, 'Pointer', 'arrow');
+            setappdata(fig, 'AppState', s);
+            refreshDisp(fig);
+        else
+            set(fig, 'Pointer', 'arrow');
+        end
+        return;
+    end
+    cp = get(s.MapAxes, 'CurrentPoint');
+    cC = cp(1,1); cR = cp(1,2);
+    [dH,dW,~] = size(s.RotatedImage);
+    if cC < 0.5 || cC > dW + 0.5 || cR < 0.5 || cR > dH + 0.5
+        if s.HoveredIVIdx ~= 0
+            s.HoveredIVIdx = 0;
+            set(fig, 'Pointer', 'arrow');
+            setappdata(fig, 'AppState', s);
+            refreshDisp(fig);
+        else
+            set(fig, 'Pointer', 'arrow');
+        end
+        return;
+    end
+    if abs(s.RotationAngle) > 0.001
+        [oR,oC] = r2o(cR,cC,s);
+    else
+        oR = cR; oC = cC;
+    end
+    if oR < 1 || oR > s.MapHeight || oC < 1 || oC > s.MapWidth
+        if s.HoveredIVIdx ~= 0
+            s.HoveredIVIdx = 0;
+            set(fig, 'Pointer', 'arrow');
+            setappdata(fig, 'AppState', s);
+            refreshDisp(fig);
+        else
+            set(fig, 'Pointer', 'arrow');
+        end
+        return;
+    end
+    [wx,wy] = pixel_to_world(round(oR), round(oC), s.MapHeight, s.Scale);
+    hoverIdx = check_iv_click(wx, wy, s.IVList);
+    
+    if hoverIdx ~= s.HoveredIVIdx
+        s.HoveredIVIdx = hoverIdx;
+        if hoverIdx > 0
+            set(fig, 'Pointer', 'hand');
+        else
+            set(fig, 'Pointer', 'arrow');
+        end
+        setappdata(fig, 'AppState', s);
+        refreshDisp(fig);
+    end
+end
+
+function clearIVSelection(fig)
+    s = getappdata(fig, 'AppState');
+    if ~isempty(s) && s.SelectedIVIdx ~= 0
+        s.SelectedIVIdx = 0;
+        setappdata(fig, 'AppState', s);
+        refreshDisp(fig);
+    end
+end
+
+
