@@ -59,44 +59,44 @@ function app = nav_ui_app(projectRoot)
 
     % ---- Mode indicator ----
     modeL = uicontrol('Parent',rp,'Style','text','Units','normalized', ...
-        'Position',[0.03 0.97 0.94 0.025],'String','Mode: Idle', ...
+        'Position',[0.03 0.955 0.44 0.028],'String','Mode: Idle', ...
         'FontName',FN,'FontSize',11,'FontWeight','bold', ...
-        'BackgroundColor',BP,'ForegroundColor',FO,'HorizontalAlignment','center');
+        'BackgroundColor',[.16 .18 .24],'ForegroundColor',FO,'HorizontalAlignment','left');
 
     % ---- Coordinate display (P6: more prominent position) ----
     coordDisp = uicontrol('Parent',rp,'Style','text','Units','normalized', ...
-        'Position',[0.03 0.945 0.94 0.023],'String','Coords: --', ...
+        'Position',[0.47 0.955 0.50 0.028],'String','Coords: --', ...
         'FontName',FN,'FontSize',10,'FontWeight','bold', ...
         'BackgroundColor',[.16 .18 .24],'ForegroundColor',[.3 1 .5],'HorizontalAlignment','center');
 
     % ========== VEHICLE CONTROLS ==========
-    sep(rp,0.96,BB); stit(rp,0.94,'VEHICLE CONTROLS',FN,BP,FS);
+    sep(rp,0.946,BB); stit(rp,0.918,'VEHICLE CONTROLS',FN,BP,FS);
 
-    lab(rp,[0.03 0.915 0.28 0.022],'Heading(deg):',FN,BP,FL);
+    lab(rp,[0.03 0.885 0.31 0.026],'Heading(deg):',FN,BP,FL);
     angIn = uicontrol('Parent',rp,'Style','edit','Units','normalized', ...
-        'Position',[0.32 0.915 0.14 0.022],'String','0','FontName',FN,'FontSize',9, ...
+        'Position',[0.34 0.885 0.14 0.026],'String','0','FontName',FN,'FontSize',9, ...
         'BackgroundColor',[.95 .95 .97]);
-    lab(rp,[0.50 0.915 0.18 0.022],'Scale:',FN,BP,FL);
+    lab(rp,[0.52 0.885 0.16 0.026],'Scale:',FN,BP,FL);
     scIn = uicontrol('Parent',rp,'Style','edit','Units','normalized', ...
-        'Position',[0.68 0.915 0.14 0.022],'String','1','FontName',FN,'FontSize',9, ...
+        'Position',[0.70 0.885 0.14 0.026],'String','1','FontName',FN,'FontSize',9, ...
         'BackgroundColor',[.95 .95 .97]);
 
-    btn(rp,[0.03 0.885 0.30 0.028],'➕ Add IV',FN,BA,[1 1 1],@(~,~)onAddIV(fig));
-    btn(rp,[0.35 0.885 0.30 0.028],'❌ Remove',FN,[.7 .3 .3],[1 1 1],@(~,~)onRemoveIV(fig));
-    btn(rp,[0.67 0.885 0.30 0.028],'📋 Report',FN,BB,[1 1 1],@(~,~)onReportIV(fig));
+    btn(rp,[0.03 0.849 0.30 0.030],'➕ Add IV',FN,BA,[1 1 1],@(~,~)onAddIV(fig));
+    btn(rp,[0.35 0.849 0.30 0.030],'❌ Remove',FN,[.7 .3 .3],[1 1 1],@(~,~)onRemoveIV(fig));
+    btn(rp,[0.67 0.849 0.30 0.030],'📋 Report',FN,BB,[1 1 1],@(~,~)onReportIV(fig));
 
-    lab(rp,[0.03 0.86 0.94 0.02],'Loaded IVs:',FN,BP,FL);
+    lab(rp,[0.03 0.820 0.94 0.020],'Loaded IVs:',FN,BP,FL);
     ivLB = uicontrol('Parent',rp,'Style','listbox','Units','normalized', ...
-        'Position',[0.03 0.77 0.94 0.088],'String',{'(none)'},'Value',1, ...
+        'Position',[0.03 0.744 0.94 0.068],'String',{'(none)'},'Value',1, ...
         'FontName',FN,'FontSize',9, ...
         'BackgroundColor',[.28 .30 .36],'ForegroundColor',[.9 .9 .95], ...
         'Callback',@(~,~)onListboxSelect(fig));
 
     % ========== MEASUREMENT ==========
     sep(rp,0.76,BB); stit(rp,0.74,'MEASUREMENT',FN,BP,FS);
-    btn(rp,[0.03 0.71 0.30 0.028],'📏 Distance',FN,BB,[1 1 1],@(~,~)onDistBtn(fig));
-    btn(rp,[0.35 0.71 0.30 0.028],'🛣️ Traj',FN,BB,[1 1 1],@(~,~)onTrajBtn(fig));
-    btn(rp,[0.67 0.71 0.30 0.028],'🗑️ Clear',FN,BB,[1 1 1],@(~,~)onClearMeas(fig));
+    btn(rp,[0.03 0.705 0.30 0.034],'📏 Distance',FN,BB,[1 1 1],@(~,~)onDistBtn(fig));
+    btn(rp,[0.35 0.705 0.30 0.034],'🛣️ Traj',FN,BB,[1 1 1],@(~,~)onTrajBtn(fig));
+    btn(rp,[0.67 0.705 0.30 0.034],'🗑️ Clear',FN,BB,[1 1 1],@(~,~)onClearMeas(fig));
     dR = uicontrol('Parent',rp,'Style','text','Units','normalized', ...
         'Position',[0.03 0.685 0.45 0.022],'String','Dist: --', ...
         'FontName',FN,'FontSize',9,'BackgroundColor',BP,'ForegroundColor',FL, ...
@@ -108,11 +108,11 @@ function app = nav_ui_app(projectRoot)
 
     % ========== MAP ROTATION ==========
     sep(rp,0.675,BB); stit(rp,0.655,'MAP ROTATION',FN,BP,FS);
-    lab(rp,[0.03 0.63 0.25 0.022],'Angle(deg):',FN,BP,FL);
+    lab(rp,[0.03 0.625 0.29 0.03],'Angle(deg):',FN,BP,FL);
     rotIn = uicontrol('Parent',rp,'Style','edit','Units','normalized', ...
-        'Position',[0.29 0.63 0.16 0.022],'String','0','FontName',FN,'FontSize',9, ...
+        'Position',[0.31 0.625 0.16 0.03],'String','0','FontName',FN,'FontSize',9, ...
         'BackgroundColor',[.95 .95 .97]);
-    btn(rp,[0.48 0.625 0.49 0.028],'🔄 Rotate Map',FN,BB,[1 1 1],@(~,~)onRotate(fig));
+    btn(rp,[0.50 0.623 0.47 0.034],'🔄 Rotate Map',FN,BB,[1 1 1],@(~,~)onRotate(fig));
 
     % ========== OR TABS ==========
     sep(rp,0.61,BB);
@@ -136,17 +136,18 @@ function app = nav_ui_app(projectRoot)
 
     % ---- OR-2  Local View ----
     t2 = uitab(tg,'Title','OR2:LocalView','BackgroundColor',BP);
-    lab(t2,[0.03 0.92 0.28 0.06],'Range (m):',FN,BP,FL);
+    lab(t2,[0.03 0.92 0.22 0.055],'Range (m):',FN,BP,FL);
     rgIn = uicontrol('Parent',t2,'Style','edit','Units','normalized', ...
-        'Position',[0.32 0.92 0.18 0.06],'String','100','FontName',FN,'FontSize',9, ...
+        'Position',[0.30 0.92 0.18 0.055],'String','100','FontName',FN,'FontSize',9, ...
         'BackgroundColor',[.95 .95 .97]);
-    btn(t2,[0.53 0.92 0.20 0.06],'Update',FN,BB,[1 1 1],@(~,~)updateLocalView(fig));
-    dirBtn = btn(t2,[0.75 0.92 0.22 0.06],'Show Direction',FN,BB,[1 1 1],@(~,~)onToggleLocalDirection(fig));
+    btn(t2,[0.51 0.92 0.19 0.055],'Update',FN,BB,[1 1 1],@(~,~)updateLocalView(fig));
+    dirBtn = btn(t2,[0.73 0.92 0.24 0.055],'Show Direction',FN,BB,[1 1 1],@(~,~)onToggleLocalDirection(fig));
     localInfo = uicontrol('Parent',t2,'Style','text','Units','normalized', ...
-        'Position',[0.03 0.85 0.94 0.045],'String','Circular local map centered at the selected IV', ...
-        'FontName',FN,'FontSize',9,'BackgroundColor',BP,'ForegroundColor',[.75 .78 .86], ...
+        'Position',[0.03 0.83 0.94 0.04],'String','Circular local map centered on the selected IV', ...
+        'FontName',FN,'FontSize',8.5,'BackgroundColor',BP,'ForegroundColor',[.75 .78 .86], ...
         'HorizontalAlignment','center');
-    locAx = axes('Parent',t2,'Units','normalized','Position',[0.05 0.03 0.90 0.80], ...
+    set(dirBtn,'FontSize',8.5);
+    locAx = axes('Parent',t2,'Units','normalized','Position',[0.05 0.03 0.90 0.72], ...
         'Color',[.1 .1 .14],'XTick',[],'YTick',[]); axis(locAx,'off');
     text(locAx,0.5,0.5,'Select an IV','Units','normalized', ...
         'HorizontalAlignment','center','Color',[.45 .48 .58],'FontSize',11);
@@ -205,6 +206,7 @@ function app = nav_ui_app(projectRoot)
     s.SkelWorldPts  = [];         s.SkelPixPts = [];
     % OR-5
     s.PathPixels    = [];         s.PathWorldPts = [];
+    s.DistanceHistory = struct('P1',{},'P2',{},'Distance',{});
     s.ShowLocalDirection = false;
     % handles
     s.Figure = fig;   s.MapAxes = mapAx;  s.hImg = hImg;
@@ -350,11 +352,12 @@ function onMapClick(fig)
         else
             p1=s.TempPoints(1,:); p2=s.TempPoints(2,:);
             d=sqrt((p2(1)-p1(1))^2+(p2(2)-p1(2))^2);
-            hl=plot(s.MapAxes,[p1(3) p2(3)],[p1(4) p2(4)],'r-','LineWidth',2);set(hl,'HitTest','off');
-            ht=text(s.MapAxes,(p1(3)+p2(3))/2,(p1(4)+p2(4))/2-15, ...
-                sprintf('%.1f m',d),'Color','w','FontSize',10,'FontWeight','bold', ...
-                'BackgroundColor',[.8 .15 .15],'HorizontalAlignment','center');
-            set(ht,'HitTest','off');
+            newSeg = struct('P1',p1(1:2),'P2',p2(1:2),'Distance',d);
+            if isempty(s.DistanceHistory)
+                s.DistanceHistory = newSeg;
+            else
+                s.DistanceHistory(end+1) = newSeg;
+            end
             set(s.DistResult,'String',sprintf('Dist: %.2f m',d));
             if clickedIVIdx > 0
                 setSt(fig,sprintf('  Distance = %.2f m (to IV #%d)',d,s.IVList(clickedIVIdx).ID),[.4 .9 .5]);
@@ -363,6 +366,7 @@ function onMapClick(fig)
             end
             s.InteractiveMode='idle'; s.TempPoints=[];
             set(s.ModeLabel,'String','Mode: Idle','ForegroundColor',[.55 .85 .60]);
+            setappdata(fig,'AppState',s); refreshDisp(fig); s=getappdata(fig,'AppState');
         end
         hold(s.MapAxes,'off');
 
@@ -586,6 +590,7 @@ end
 function onClearMeas(fig)
     clearIVSelection(fig);
     s=getappdata(fig,'AppState'); s.InteractiveMode='idle'; s.TempPoints=[];
+    s.DistanceHistory = struct('P1',{},'P2',{},'Distance',{});
     set(s.ModeLabel,'String','Mode: Idle','ForegroundColor',[.55 .85 .60]);
     set(s.DistResult,'String','Dist: --'); set(s.TrajResult,'String','Traj: --');
     setappdata(fig,'AppState',s); refreshDisp(fig); setSt(fig,'  Cleared.',[.55 .85 .60]);
@@ -784,6 +789,7 @@ function refreshDisp(fig)
         end
         hp=plot(s.MapAxes,pc,pr,'m-','LineWidth',3);set(hp,'HitTest','off');
     end
+    renderMeasurementHistory(s);
     hold(s.MapAxes,'off');
     s.hImg=hI; setappdata(fig,'AppState',s);
     updateLocalView(fig);
@@ -819,15 +825,9 @@ function updateLocalView(fig)
     rM=str2double(get(s.RangeInput,'String')); if isnan(rM)||rM<=0,rM=100;end
     [cR,cC]=world_to_pixel(iv.WorldX,iv.WorldY,s.MapHeight,s.Scale);
     rP=rM/s.Scale; li=local_map_view(s.MapImage,cR,cC,rP);
-    if abs(s.RotationAngle - (90 - iv.Angle)) < 0.01
-        li = rotate_map(li, s.RotationAngle);
-    end
+    li = overlayLocalIV(li, iv, s.Scale, s.ShowLocalDirection);
     cla(s.LocalAxes); imshow(li,'Parent',s.LocalAxes);
-    if abs(s.RotationAngle - (90 - iv.Angle)) < 0.01
-        titleStr = sprintf('IV#%d R=%.0fm Sc=%g | Head-Up',iv.ID,rM,iv.ScaleFactor);
-    else
-        titleStr = sprintf('IV#%d R=%.0fm Sc=%g',iv.ID,rM,iv.ScaleFactor);
-    end
+    titleStr = sprintf('IV#%d R=%.0fm Sc=%g',iv.ID,rM,iv.ScaleFactor);
     title(s.LocalAxes,titleStr, ...
         'Color',[.85 .88 .95],'FontSize',9);
 end
@@ -864,6 +864,69 @@ function [rR,rC] = o2r(oR,oC,s)
 end
 function setSt(fig,msg,clr)
     s=getappdata(fig,'AppState');set(s.StatusBar,'String',msg,'ForegroundColor',clr);
+end
+function renderMeasurementHistory(s)
+    for k = 1:length(s.DistanceHistory)
+        seg = s.DistanceHistory(k);
+        [r1,c1] = world_to_pixel(seg.P1(1),seg.P1(2),s.MapHeight,s.Scale);
+        [r2,c2] = world_to_pixel(seg.P2(1),seg.P2(2),s.MapHeight,s.Scale);
+        if abs(s.RotationAngle) > 0.001
+            [r1,c1] = o2r(r1,c1,s);
+            [r2,c2] = o2r(r2,c2,s);
+        end
+        drawDistanceSegment(s.MapAxes,c1,r1,c2,r2,seg.Distance,true);
+    end
+    if strcmp(s.InteractiveMode,'measure_dist') && size(s.TempPoints,1) >= 1
+        tp = s.TempPoints;
+        pr = zeros(size(tp,1),1);
+        pc = zeros(size(tp,1),1);
+        for j = 1:size(tp,1)
+            [pr(j),pc(j)] = world_to_pixel(tp(j,1),tp(j,2),s.MapHeight,s.Scale);
+            if abs(s.RotationAngle) > 0.001
+                [pr(j),pc(j)] = o2r(pr(j),pc(j),s);
+            end
+        end
+        plot(s.MapAxes,pc,pr,'ro','MarkerSize',10,'LineWidth',2,'MarkerFaceColor',[1 .3 .3], ...
+            'HitTest','off');
+    elseif strcmp(s.InteractiveMode,'measure_traj') && size(s.TempPoints,1) >= 1
+        tp = s.TempPoints;
+        pr = zeros(size(tp,1),1);
+        pc = zeros(size(tp,1),1);
+        for j = 1:size(tp,1)
+            [pr(j),pc(j)] = world_to_pixel(tp(j,1),tp(j,2),s.MapHeight,s.Scale);
+            if abs(s.RotationAngle) > 0.001
+                [pr(j),pc(j)] = o2r(pr(j),pc(j),s);
+            end
+        end
+        if numel(pc) >= 2
+            plot(s.MapAxes,pc,pr,'b-','LineWidth',2,'HitTest','off');
+        end
+        plot(s.MapAxes,pc,pr,'bs','MarkerSize',8,'LineWidth',2,'MarkerFaceColor',[.3 .5 1], ...
+            'HitTest','off');
+    end
+end
+function drawDistanceSegment(ax,c1,r1,c2,r2,distance,drawMarkers)
+    if nargin < 7
+        drawMarkers = true;
+    end
+    plot(ax,[c1 c2],[r1 r2],'r-','LineWidth',2,'HitTest','off');
+    if drawMarkers
+        plot(ax,[c1 c2],[r1 r2],'ro','MarkerSize',10,'LineWidth',2,'MarkerFaceColor',[1 .3 .3], ...
+            'HitTest','off');
+    end
+    drawDistanceTag(ax,(c1+c2)/2,(r1+r2)/2-15,sprintf('%.1f m',distance));
+end
+function drawDistanceTag(ax,cx,cy,labelText)
+    tagW = max(74, 11 * length(labelText) + 14);
+    tagH = 28;
+    x1 = cx - tagW / 2;
+    x2 = cx + tagW / 2;
+    y1 = cy - tagH / 2;
+    y2 = cy + tagH / 2;
+    patch(ax,[x1 x2 x2 x1],[y1 y1 y2 y2],[0.80 0.15 0.15], ...
+        'FaceAlpha',0.52,'EdgeColor','none','HitTest','off');
+    text(ax,cx,cy,labelText,'Color','w','FontSize',10,'FontWeight','bold', ...
+        'HorizontalAlignment','center','VerticalAlignment','middle','HitTest','off');
 end
 function outImg = overlayLocalIV(img,iv,mapScale,showDirection)
     outImg = img;
