@@ -1,6 +1,6 @@
-function mask = build_road_mask(img)
+function mask = build_road_mask(img, params)
 %BUILD_ROAD_MASK Generate a binary mask of road pixels from the map image.
-%   mask = build_road_mask(img)
+%   mask = build_road_mask(img, params)
 %
 %   The function converts the image to a manually-computed HSV-like colour
 %   space (no built-in rgb2hsv) and identifies road pixels by:
@@ -13,7 +13,17 @@ function mask = build_road_mask(img)
 %   isolated noise pixels.
 %
 %   Input:  img  - uint8 H x W x 3 RGB map image
+%           params - (Optional) struct specifying thresholds
 %   Output: mask - logical H x W, true = road
+
+    if nargin < 2
+        % 默认使用当前优化的基准参数 (经过网格搜索与标注图比对优化后)
+        params.sat = 0.22;
+        params.val_min = 0.55;
+        params.val_max = 0.95;
+        params.solidity = 0.20;
+        params.neighbourCount = 2;
+    end
 
     [H, W, ~] = size(img);
 
@@ -35,16 +45,15 @@ function mask = build_road_mask(img)
     val = maxRGB;
 
     % ----- Road criteria -----
-    isLowSat      = sat < 0.28;
-    isMedBright   = val > 0.42 & val < 0.92;
+    isLowSat      = sat < params.sat;
+    isMedBright   = val > params.val_min & val < params.val_max;
     isNotBlue     = B < G + 0.08;       % blue not dominant (water)
     isNotTooGreen = G < R + 0.12;       % green not dominant (vegetation)
 
     mask = isLowSat & isMedBright & isNotBlue & isNotTooGreen;
 
     % ----- Neighbourhood majority filter -----
-    % A pixel is kept only if >= 4 of its 8 neighbours are also road.
-    % This removes small isolated false positives.
+    % A pixel is kept only if >= N of its 8 neighbours are also road.
     padded = false(H + 2, W + 2);
     padded(2:end-1, 2:end-1) = mask;
 
@@ -59,5 +68,36 @@ function mask = build_road_mask(img)
         end
     end
 
-    mask = mask & (neighbourCount >= 4);
+    mask = mask & (neighbourCount >= params.neighbourCount);
+
+    % ----- 几何特征与连通分量过滤（剔除大楼楼顶） -----
+    CC = bwconncomp(mask);
+    numPixels = cellfun(@numel, CC.PixelIdxList);
+    
+    % 筛选面积较大（> 500像素）的连通域进行几何形状分析
+    largeRegions = find(numPixels > 500);
+    for i = 1:length(largeRegions)
+        idx = CC.PixelIdxList{largeRegions(i)};
+        [r_pts, c_pts] = ind2sub([H, W], idx);
+        
+        % 计算外接矩形尺寸
+        minR = min(r_pts); maxR = max(r_pts);
+        minC = min(c_pts); maxC = max(c_pts);
+        boxH = maxR - minR + 1;
+        boxW = maxC - minC + 1;
+        
+        % 计算密实度 (Solidity) = 实际像素面积 / 外接矩形面积
+        solidity = length(idx) / (boxH * boxW);
+        
+        % 如果密实度较高，说明它是方正、充实的建筑物团块，而非细长道路，强行抹除
+        if solidity > params.solidity
+            mask(idx) = false;
+        end
+    end
+
+    % ----- 连通性过滤 (方案 B) -----
+    % 剔除所有无法连通至核心路网起点 (517, 468) 的孤立噪声块与楼顶
+    mask = filter_isolated_roads(mask, 517, 468);
 end
+
+
