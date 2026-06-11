@@ -160,7 +160,9 @@ function app = nav_ui_app(projectRoot)
     % ---- OR-4  Street View ----
     t4 = uitab(tg,'Title','OR4:StreetView','BackgroundColor',BP);
     btn(t4,[0.03 0.90 0.94 0.08],'📸 Generate',FN,BA,[1 1 1],@(~,~)onStreetViewBtn(fig));
-    svAx = axes('Parent',t4,'Units','normalized','Position',[0.03 0.03 0.94 0.87], ...
+    btn(t4,[0.03 0.80 0.45 0.08],'⬅️ Turn Left',FN,BB,[1 1 1],@(~,~)onRotateSV(fig,-15));
+    btn(t4,[0.52 0.80 0.45 0.08],'➡️ Turn Right',FN,BB,[1 1 1],@(~,~)onRotateSV(fig,15));
+    svAx = axes('Parent',t4,'Units','normalized','Position',[0.03 0.03 0.94 0.74], ...
         'Color',[.1 .1 .14],'XTick',[],'YTick',[]); axis(svAx,'off');
     text(svAx,0.5,0.5,'Click a road point','Units','normalized', ...
         'HorizontalAlignment','center','Color',[.45 .48 .58],'FontSize',11);
@@ -198,6 +200,8 @@ function app = nav_ui_app(projectRoot)
     s.SelectedIVIdx = 0;          s.HoveredIVIdx = 0;          s.TempPoints    = [];
     % OR-1
     s.SkelWorldPts  = [];         s.SkelPixPts = [];
+    % OR-4
+    s.SVPos         = [];         s.SVAngle    = 0;
     % OR-5
     s.PathPixels    = [];         s.PathWorldPts = [];
     % handles
@@ -416,6 +420,10 @@ function onMapClick(fig)
             end
             ang=find_road_direction(round(oR),round(oC),s.RoadMask);
             svImg=generate_street_view(s.MapImage,round(oR),round(oC),ang,s.MapHeight,s.Scale);
+            
+            s.SVPos = [round(oR), round(oC)];
+            s.SVAngle = ang;
+            
             cla(s.SVAxes); imshow(svImg,'Parent',s.SVAxes);
             title(s.SVAxes,sprintf('Street View  angle=%.0f',ang),'Color',[.85 .88 .95],'FontSize',9);
             s.InteractiveMode='idle';
@@ -698,6 +706,20 @@ function onStreetViewBtn(fig)
     s=getappdata(fig,'AppState'); s.InteractiveMode='street_view'; s.TempPoints=[];
     set(s.ModeLabel,'String','Mode: STREET VIEW','ForegroundColor',[.8 .6 .2]);
     setappdata(fig,'AppState',s); setSt(fig,'  Click a road point for street view.',[1 .8 .3]);
+end
+function onRotateSV(fig, deltaAngle)
+    s=getappdata(fig,'AppState');
+    if isempty(s.SVPos)
+        setSt(fig,'  Please click on a road point to generate street view first.',[1 .4 .4]);
+        return;
+    end
+    s.SVAngle = mod(s.SVAngle + deltaAngle, 360);
+    setSt(fig,sprintf('  Rotating street view to %.1f deg...',s.SVAngle),[1 .8 .3]); drawnow;
+    svImg=generate_street_view(s.MapImage,s.SVPos(1),s.SVPos(2),s.SVAngle,s.MapHeight,s.Scale);
+    cla(s.SVAxes); imshow(svImg,'Parent',s.SVAxes);
+    title(s.SVAxes,sprintf('Street View  angle=%.0f',s.SVAngle),'Color',[.85 .88 .95],'FontSize',9);
+    setappdata(fig,'AppState',s);
+    setSt(fig,sprintf('  Street view rotated to %.1f deg.',s.SVAngle),[.4 .9 .5]);
 end
 
 % ---------- OR-5 Path Planning ----------
