@@ -170,8 +170,8 @@ function app = nav_ui_app(projectRoot)
     % ---- OR-4  Street View ----
     t4 = uitab(tg,'Title','OR4:StreetView','BackgroundColor',BP);
     btn(t4,[0.03 0.90 0.94 0.08],'📸 Generate',FN,BA,[1 1 1],@(~,~)onStreetViewBtn(fig));
-    btn(t4,[0.03 0.80 0.45 0.08],'⬅️ Turn Left',FN,BB,[1 1 1],@(~,~)onRotateSV(fig,-15));
-    btn(t4,[0.52 0.80 0.45 0.08],'➡️ Turn Right',FN,BB,[1 1 1],@(~,~)onRotateSV(fig,15));
+    btn(t4,[0.03 0.80 0.45 0.08],'⬅️ Turn Left',FN,BB,[1 1 1],@(~,~)onRotateSV(fig,15));
+    btn(t4,[0.52 0.80 0.45 0.08],'➡️ Turn Right',FN,BB,[1 1 1],@(~,~)onRotateSV(fig,-15));
     svAx = axes('Parent',t4,'Units','normalized','Position',[0.03 0.03 0.94 0.74], ...
         'Color',[.1 .1 .14],'XTick',[],'YTick',[]); axis(svAx,'off');
     text(svAx,0.5,0.5,'Click a road point','Units','normalized', ...
@@ -391,9 +391,10 @@ function onMapClick(fig)
             set(hl,'HitTest','off');
         end
         hold(s.MapAxes,'off');
-        tLen=0;
-        for k=2:n,dx=s.TempPoints(k,1)-s.TempPoints(k-1,1);dy=s.TempPoints(k,2)-s.TempPoints(k-1,2);
-            tLen=tLen+sqrt(dx^2+dy^2);end
+        tLen = 0;
+        if n >= 2
+            tLen = sum(sqrt(diff(s.TempPoints(:,1)).^2 + diff(s.TempPoints(:,2)).^2));
+        end
         set(s.TrajResult,'String',sprintf('Traj: %.2f m',tLen));
         if clickedIVIdx > 0
             setSt(fig,sprintf('  Trajectory pt on IV #%d: %d pts, %.2f m',s.IVList(clickedIVIdx).ID,n,tLen),[.3 .7 1]);
@@ -481,12 +482,8 @@ function onMapClick(fig)
                 set(s.PathInfo,'String','No path found (unreachable).');
             else
                 s.PathPixels=[pR pC];
-                pLen=0;
-                for k=2:length(pR)
-                    [w1x,w1y]=pixel_to_world(pR(k-1),pC(k-1),s.MapHeight,s.Scale);
-                    [w2x,w2y]=pixel_to_world(pR(k),pC(k),s.MapHeight,s.Scale);
-                    pLen=pLen+sqrt((w2x-w1x)^2+(w2y-w1y)^2);
-                end
+                [wX, wY] = pixel_to_world(pR, pC, s.MapHeight, s.Scale);
+                pLen = sum(sqrt(diff(wX).^2 + diff(wY).^2));
                 set(s.PathInfo,'String',sprintf('Path: %.1f m  (%d px)',pLen,length(pR)));
                 setSt(fig,sprintf('  Shortest path = %.1f m',pLen),[.4 .9 .5]);
                 setappdata(fig,'AppState',s); refreshDisp(fig);
