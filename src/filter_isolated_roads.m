@@ -13,20 +13,34 @@ function filtered_mask = filter_isolated_roads(mask, startR, startC)
     [H, W] = size(mask);
     filtered_mask = false(H, W);
     
-    % 1. 临时桥接机制 (使用 3x3 邻域进行逻辑膨胀以允许通过小断缺)
-    % 这里使用 MATLAB 卷积来模拟，防止无工具箱时的环境兼容性问题
-    K = ones(3, 3);
-    dilated = conv2(double(mask), K, 'same') > 0;
+    % 1. 临时桥接机制 (使用最原生的 3x3 边界切片位运算 OR 进行膨胀，不使用任何 conv2)
+    padded = false(H + 2, W + 2);
+    padded(2:end-1, 2:end-1) = mask;
+    dilated = false(H, W);
+    for dr = -1:1
+        for dc = -1:1
+            dilated = dilated | padded((2+dr):(H+1+dr), (2+dc):(W+1+dc));
+        end
+    end
     
-    % 2. 容错起点探测 (若起点 (startR, startC) 暂时没有被判定为道路，往外探测 5x5 区域找最近的道路点)
+    % 2. 容错起点探测 (若起点 (startR, startC) 没有被判定为道路，往外探测 5x5 区域找最近的道路点)
     actualStartR = startR;
     actualStartC = startC;
     
     if ~dilated(startR, startC)
-        % 寻找最近的已检出像素
-        [dr_grid, dc_grid] = meshgrid(-2:2, -2:2);
+        % 手动使用双重循环构建 5x5 的相对偏移网格，不使用 meshgrid
+        dr_grid = zeros(25, 1);
+        dc_grid = zeros(25, 1);
+        grid_idx = 1;
+        for r_offset = -2:2
+            for c_offset = -2:2
+                dr_grid(grid_idx) = r_offset;
+                dc_grid(grid_idx) = c_offset;
+                grid_idx = grid_idx + 1;
+            end
+        end
         dist = dr_grid.^2 + dc_grid.^2;
-        [~, sortIdx] = sort(dist(:));
+        [~, sortIdx] = sort(dist);
         
         found_nearest = false;
         for k = 1:length(sortIdx)

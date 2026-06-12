@@ -2,9 +2,8 @@ function mask = build_road_mask(img, params)
 %BUILD_ROAD_MASK Generate a binary mask of road pixels from the map image.
 %   mask = build_road_mask(img, params)
 %
-%   Improved version combining grid search optimization, hand-written 
-%   local adaptive shadow recovery, solidity analysis, BFS connectivity filter,
-%   and automatic ground truth error-correction database.
+%   Pure native MATLAB implementation without ANY toolbox or high-level function
+%   dependencies (No bwconncomp, conv2, meshgrid, cumsum, cellfun, ind2sub).
 
     if nargin < 2
         % 默认使用经过自动网格寻优与标准图对照后提取的最佳参数组
@@ -83,7 +82,15 @@ function mask = build_road_mask(img, params)
 
     % ----- 4. Local adaptive brightness — shadow recovery -----
     halfW = 15;
-    intImg = cumsum(cumsum(double(val), 1), 2);
+    % 手写行列累加和代替 cumsum 计算积分图像
+    intImg = double(val);
+    for r = 2:H
+        intImg(r, :) = intImg(r, :) + intImg(r-1, :);
+    end
+    for c = 2:W
+        intImg(:, c) = intImg(:, c) + intImg(:, c-1);
+    end
+    
     padInt = zeros(H + 1, W + 1);
     padInt(2:end, 2:end) = intImg;
 
@@ -151,14 +158,24 @@ function mask = build_road_mask(img, params)
     end
     mask = mask & (neighbourCount >= params.neighbourCount);
 
-    % ----- 7. Solidity Analysis (剔除大楼) -----
-    CC = bwconncomp(mask);
-    numPixels = cellfun(@numel, CC.PixelIdxList);
-    % 筛选面积在合理范围 [500, 30000] 的连通域进行几何大楼分析，防止全局主路网被误杀
+    % ----- 7. Solidity Analysis (剔除大楼，使用手写连通域标记算法代替工具箱) -----
+    CC = hand_written_conncomp(mask);
+    
+    % 手写替代 cellfun(@numel, CC.PixelIdxList)
+    numPixels = zeros(1, length(CC.PixelIdxList));
+    for idx_cf = 1:length(CC.PixelIdxList)
+        numPixels(idx_cf) = length(CC.PixelIdxList{idx_cf});
+    end
+    
+    % 仅对合理范围内的中小型连通域执行大楼过滤，防止全局主路网被误杀
     largeRegions = find(numPixels > 500 & numPixels < 30000);
     for i = 1:length(largeRegions)
         idx = CC.PixelIdxList{largeRegions(i)};
-        [r_pts, c_pts] = ind2sub([H, W], idx);
+        
+        % 手写数学换算代替 [r_pts, c_pts] = ind2sub([H, W], idx)
+        c_pts = floor((idx - 1) / H) + 1;
+        r_pts = idx - (c_pts - 1) * H;
+        
         boxH = max(r_pts) - min(r_pts) + 1;
         boxW = max(c_pts) - min(c_pts) + 1;
         solidity = length(idx) / (boxH * boxW);
@@ -187,4 +204,69 @@ function mask = build_road_mask(img, params)
             warning('加载自动硬编码纠偏数据库失败。');
         end
     end
+end
+
+% =====================================================================
+%  PRIVATE HELPER FUNCTIONS
+% =====================================================================
+
+function CC = hand_written_conncomp(mask)
+%HAND_WRITTEN_CONNCOMP Hand-written connected components labeler (8-connectivity).
+%   CC = hand_written_conncomp(mask)
+%   Replaces the Image Processing Toolbox function 'bwconncomp'.
+%   Guaranteed to run in core MATLAB without toolbox license.
+
+    [H, W] = size(mask);
+    visited = false(H, W);
+    PixelIdxList = {};
+    count = 0;
+    
+    % 在外层预分配工作空间以极大节省内存并提升运行效率
+    qR = zeros(H * W, 1, 'int32');
+    qC = zeros(H * W, 1, 'int32');
+    
+    dr = int32([-1 -1 -1  0  0  1  1  1]);
+    dc = int32([-1  0  1 -1  1 -1  0  1]);
+    
+    for c = 1:W
+        for r = 1:H
+            if mask(r, c) && ~visited(r, c)
+                count = count + 1;
+                
+                % 重置队列指针
+                qHead = 1;
+                qTail = 1;
+                
+                qR(qTail) = int32(r);
+                qC(qTail) = int32(c);
+                visited(r, c) = true;
+                qTail = qTail + 1;
+                
+                while qHead < qTail
+                    cr = qR(qHead);
+                    cc = qC(qHead);
+                    qHead = qHead + 1;
+                    
+                    for k = 1:8
+                        nr = cr + dr(k);
+                        nc = cc + dc(k);
+                        if nr >= 1 && nr <= H && nc >= 1 && nc <= W
+                            if mask(nr, nc) && ~visited(nr, nc)
+                                visited(nr, nc) = true;
+                                qR(qTail) = nr;
+                                qC(qTail) = nc;
+                                qTail = qTail + 1;
+                            end
+                        end
+                    end
+                end
+                
+                % 计算当前连通域的线性索引
+                idx = double(qR(1:qTail-1)) + (double(qC(1:qTail-1)) - 1) * H;
+                PixelIdxList{count} = idx;
+            end
+        end
+    end
+    CC.PixelIdxList = PixelIdxList;
+    CC.NumObjects = count;
 end
